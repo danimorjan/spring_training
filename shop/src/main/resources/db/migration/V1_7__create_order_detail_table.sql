@@ -1,9 +1,7 @@
-CREATE TABLE OrderDetail (
-orderr UUID REFERENCES Orderr(id),
-product UUID REFERENCES product(id),
-address_country VARCHAR(30),
-address_city VARCHAR(30),
-address_county VARCHAR(30),
-address_streetaddress VARCHAR(30),
-PRIMARY KEY (orderr,product)
+CREATE TABLE IF NOT EXISTS OrderDetail (
+    order_id UUID REFERENCES orderr(id),
+    product_id UUID REFERENCES product(id),
+    shipped_from UUID REFERENCES location(id),
+    quantity integer,
+    PRIMARY KEY (order_id, product_id)
 );
