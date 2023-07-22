@@ -1,12 +1,15 @@
 package ro.msg.learning.shop.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ro.msg.learning.shop.domain.Location;
 import ro.msg.learning.shop.domain.Product;
 import ro.msg.learning.shop.domain.Stock;
 import ro.msg.learning.shop.domain.StockId;
-import ro.msg.learning.shop.dto.StockCreateDto;
+import ro.msg.learning.shop.dto.ProductIdAndQuantity;
+import ro.msg.learning.shop.dto.StockDto;
+import ro.msg.learning.shop.dto.StockIDsDto;
 import ro.msg.learning.shop.mapper.StockMapper;
 import ro.msg.learning.shop.repository.StockRepository;
 
@@ -17,6 +20,7 @@ import java.util.UUID;
 @Service
 public class StockService {
     public static final String ID_INVALID = "ID invalid.";
+    public static final String PRODUCT_OR_CATEGORY_DOESN_T_EXISTS = "Product or category doesn't exists";
 
     @Autowired
     private StockRepository stockRepository;
@@ -31,20 +35,20 @@ public class StockService {
     private StockMapper stockMapper;
 
 
-    public Stock createStock(StockCreateDto stock) {
+    public Stock createStock(StockIDsDto stock) {
 
-        Product productFound = productService.findById(stock.getProductId()).orElse(null);
-        Location locationFound = locationService.findById(stock.getLocationId()).orElse(null);
+        Optional<Product> productFound = productService.findById(stock.getProductId());
+        Optional<Location> locationFound = locationService.findById(stock.getLocationId());
 
-        if (productFound == null || locationFound == null) {
-            throw new IllegalArgumentException("Product or category doesn't exists");
+        if (productFound.isEmpty() || locationFound.isEmpty()) {
+            throw new EntityNotFoundException(PRODUCT_OR_CATEGORY_DOESN_T_EXISTS);
         }
 
-        return stockRepository.save(stockMapper.toStockEntity(productFound, locationFound, stock.getQuantity()));
+        return stockRepository.save(stockMapper.toStockEntity(productFound.get(), locationFound.get(), stock.getQuantity()));
     }
 
-    public List<Stock> getAllStockCategories() {
-        return stockRepository.findAll();
+    public List<StockDto> getAllStockCategories() {
+        return stockRepository.findAll().stream().map(stock -> stockMapper.toDto(stock)).toList();
     }
 
     public Boolean existById(StockId stockId) {
@@ -53,7 +57,7 @@ public class StockService {
 
     public void deleteById(StockId stockId) {
         if (Boolean.FALSE.equals(stockRepository.existsById(stockId))) {
-            throw new IllegalArgumentException(ID_INVALID);
+            throw new EntityNotFoundException(ID_INVALID);
         }
         stockRepository.deleteById(stockId);
     }
@@ -62,15 +66,23 @@ public class StockService {
         return stockRepository.findById(stockId);
     }
 
-    public Stock updateStock(UUID productId, UUID locationId, Integer quantity) {
-        Stock existingStock = stockRepository.findById(StockId.builder().location(locationId).product(productId).build()).orElse(null);
+    public List<UUID> findLocationIdsByProductIdsAndStock(List<ProductIdAndQuantity> productIdAndQuantityList, List<Product> products) {
+        return stockRepository.findLocationIdsByProductIdsAndStock(productIdAndQuantityList, products);
+    }
 
-        if (existingStock == null) {
-            throw new IllegalArgumentException(ID_INVALID);
+    public List<Location> findLocationIdsByProducts(List<Product> products, Integer productsCount) {
+        return stockRepository.findLocationIdsByProducts(products, productsCount);
+    }
+
+    public Stock updateStock(UUID productId, UUID locationId, Integer quantity) {
+        Optional<Stock> existingStock = stockRepository.findById(StockId.builder().location(locationId).product(productId).build());
+
+        if (existingStock.isEmpty()) {
+            throw new EntityNotFoundException(ID_INVALID);
         }
 
-        existingStock.setQuantity(quantity);
+        existingStock.get().setQuantity(quantity);
 
-        return stockRepository.save(existingStock);
+        return stockRepository.save(existingStock.get());
     }
 }

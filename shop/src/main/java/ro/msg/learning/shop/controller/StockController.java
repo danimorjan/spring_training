@@ -1,24 +1,26 @@
 package ro.msg.learning.shop.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ro.msg.learning.shop.domain.Stock;
 import ro.msg.learning.shop.domain.StockId;
-import ro.msg.learning.shop.dto.StockCreateDto;
-import ro.msg.learning.shop.dto.StockGetDto;
+import ro.msg.learning.shop.dto.StockDto;
+import ro.msg.learning.shop.dto.StockIDsDto;
 import ro.msg.learning.shop.mapper.StockMapper;
 import ro.msg.learning.shop.service.StockService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RequestMapping("/stock")
 @RestController
-@Validated
 public class StockController {
 
     public static final String STOCK_CATEGORY_WITH_ID = "Stock with ID ";
@@ -31,15 +33,23 @@ public class StockController {
     private StockMapper stockMapper;
 
     @PostMapping()
-    public ResponseEntity<StockGetDto> createStock(@RequestBody @NonNull StockCreateDto body) {
-        Stock stock = stockService.createStock(body);
-        return new ResponseEntity<>(stockMapper.toGetDto(stock), HttpStatus.CREATED);
+    public ResponseEntity<StockDto> createStock(@RequestBody @NonNull StockIDsDto stockIDsDto) {
+        try {
+            Stock stock = stockService.createStock(stockIDsDto);
+            return new ResponseEntity<>(stockMapper.toDto(stock), HttpStatus.CREATED);
+
+        } catch (EntityNotFoundException e) {
+            Logger.getAnonymousLogger().log(Level.WARNING, e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+
+
     }
 
     @GetMapping()
-    public ResponseEntity<List<StockGetDto>> getAllStocks() {
-        List<Stock> stockList = stockService.getAllStockCategories();
-        return new ResponseEntity<>(stockList.stream().map(stock -> stockMapper.toGetDto(stock)).toList(), HttpStatus.OK);
+    public ResponseEntity<List<StockDto>> getAllStocks() {
+        List<StockDto> stockList = stockService.getAllStockCategories();
+        return new ResponseEntity<>(stockList, HttpStatus.OK);
     }
 
 
@@ -50,35 +60,32 @@ public class StockController {
             stockService.deleteById(StockId.builder().location(locationId).product(productId).build());
             return ResponseEntity.ok(STOCK_CATEGORY_WITH_ID + productId + " " + locationId + HAS_BEEN_DELETED);
 
-        } catch (IllegalArgumentException e) {
-
-            return ResponseEntity.notFound().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.ok(e.getMessage());
         }
     }
 
     @GetMapping("/{productId}/{locationId}")
-    public ResponseEntity<StockGetDto> getStockById(@PathVariable UUID productId, @PathVariable UUID locationId) {
-        Stock stock = stockService.findById(StockId.builder().location(locationId).product(productId).build()).orElse(null);
+    public ResponseEntity<StockDto> getStockById(@PathVariable UUID productId, @PathVariable UUID locationId) {
 
-        if (stock == null) {
-            return ResponseEntity.notFound().build();
-        }
+        Optional<Stock> stock = stockService.findById(StockId.builder().location(locationId).product(productId).build());
+        return stock.map(value -> ResponseEntity.ok(stockMapper.toDto(value))).orElseGet(() -> ResponseEntity.notFound().build());
 
-        return ResponseEntity.ok(stockMapper.toGetDto(stock));
     }
 
     @PutMapping("/{productId}/{locationId}")
-    public ResponseEntity<StockGetDto> updateStock(
+    public ResponseEntity<StockDto> updateStock(
             @PathVariable UUID productId, @PathVariable UUID locationId,
-            @RequestBody StockCreateDto updatedStock
+            @RequestBody StockIDsDto updatedStock
     ) {
 
         try {
 
             Stock stock = stockService.updateStock(productId, locationId, updatedStock.getQuantity());
-            return ResponseEntity.ok(stockMapper.toGetDto(stock));
+            return ResponseEntity.ok(stockMapper.toDto(stock));
 
-        } catch (IllegalArgumentException e) {
+        }  catch (EntityNotFoundException e) {
+            Logger.getAnonymousLogger().log(Level.WARNING, e.getMessage());
             return ResponseEntity.notFound().build();
         }
 

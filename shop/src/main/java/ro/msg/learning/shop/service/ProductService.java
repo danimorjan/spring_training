@@ -1,10 +1,11 @@
 package ro.msg.learning.shop.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ro.msg.learning.shop.domain.Product;
 import ro.msg.learning.shop.domain.ProductCategory;
-import ro.msg.learning.shop.dto.ProductGetDto;
+import ro.msg.learning.shop.dto.ProductDto;
 import ro.msg.learning.shop.mapper.ProductCategoryMapper;
 import ro.msg.learning.shop.mapper.ProductMapper;
 import ro.msg.learning.shop.repository.ProductRepository;
@@ -29,7 +30,7 @@ public class ProductService {
     @Autowired
     private ProductMapper productMapper;
 
-    public Product createProduct(ProductGetDto product) {
+    public Product createProduct(ProductDto product) {
 
         ProductCategory productCategoryFound = productCategoryService.findByName(product.getCategoryName()).orElse(null);
 
@@ -41,8 +42,8 @@ public class ProductService {
         return productRepository.save(productMapper.toProductEntity(product, productCategoryFound));
     }
 
-    public List<Product> getAllProductCategories() {
-        return productRepository.findAll();
+    public List<ProductDto> getAllProductCategories() {
+        return productRepository.findAll().stream().map(product -> productMapper.toDto(product)).toList();
     }
 
     public Boolean existById(UUID productId) {
@@ -51,7 +52,7 @@ public class ProductService {
 
     public void deleteById(UUID productId) {
         if (Boolean.FALSE.equals(productRepository.existsById(productId))) {
-            throw new IllegalArgumentException(ID_INVALID);
+            throw new EntityNotFoundException(ID_INVALID);
         }
         productRepository.deleteById(productId);
     }
@@ -60,27 +61,27 @@ public class ProductService {
         return productRepository.findById(productId);
     }
 
-    public Product updateProduct(UUID productId, ProductGetDto updatedProduct) {
-        Product existingProduct = productRepository.findById(productId).orElse(null);
+    public Product updateProduct(UUID productId, ProductDto updatedProduct) {
+        Optional<Product> existingProduct = productRepository.findById(productId);
 
-        if (existingProduct == null) {
-            throw new IllegalArgumentException(ID_INVALID);
+        if (existingProduct.isEmpty()) {
+            throw new EntityNotFoundException(ID_INVALID);
         }
 
-        existingProduct.setName(updatedProduct.getProductName());
-        existingProduct.setDescription(updatedProduct.getProductDescription());
-        existingProduct.setPrice(updatedProduct.getPrice());
-        existingProduct.setSupplier(updatedProduct.getSupplier());
-        existingProduct.setWeight(updatedProduct.getWeight());
-        existingProduct.setImageUrl(updatedProduct.getImageUrl());
+        existingProduct.get().setName(updatedProduct.getProductName());
+        existingProduct.get().setDescription(updatedProduct.getProductDescription());
+        existingProduct.get().setPrice(updatedProduct.getPrice());
+        existingProduct.get().setSupplier(updatedProduct.getSupplier());
+        existingProduct.get().setWeight(updatedProduct.getWeight());
+        existingProduct.get().setImageUrl(updatedProduct.getImageUrl());
 
         ProductCategory existingCategory = productCategoryService.findByName(updatedProduct.getCategoryName()).orElse(null);
-        if(existingCategory == null){
+        if (existingCategory == null) {
             existingCategory = productCategoryService.createProductCategory(productMapper.toProductCategoryEntity(updatedProduct));
         }
         existingCategory.setDescription(updatedProduct.getCategoryDescription());
-        existingProduct.setProductCategory(existingCategory);
+        existingProduct.get().setProductCategory(existingCategory);
 
-        return productRepository.save(existingProduct);
+        return productRepository.save(existingProduct.get());
     }
 }

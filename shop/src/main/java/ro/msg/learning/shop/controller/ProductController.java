@@ -1,24 +1,24 @@
 package ro.msg.learning.shop.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ro.msg.learning.shop.domain.Product;
-import ro.msg.learning.shop.dto.ProductGetDto;
+import ro.msg.learning.shop.dto.ProductDto;
 import ro.msg.learning.shop.mapper.ProductMapper;
-import ro.msg.learning.shop.mapper.ProductCategoryMapper;
-import ro.msg.learning.shop.service.ProductCategoryService;
 import ro.msg.learning.shop.service.ProductService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RequestMapping("/product")
 @RestController
-@Validated
 public class ProductController {
 
     public static final String PRODUCT_CATEGORY_WITH_ID = "Product with ID ";
@@ -30,15 +30,15 @@ public class ProductController {
     private ProductMapper productMapper;
 
     @PostMapping()
-    public ResponseEntity<ProductGetDto> createProduct(@RequestBody @NonNull ProductGetDto body) {
-        Product product = productService.createProduct(body);
-        return new ResponseEntity<>(productMapper.toGetDto(product), HttpStatus.CREATED);
+    public ResponseEntity<ProductDto> createProduct(@RequestBody @NonNull ProductDto productDto) {
+        Product product = productService.createProduct(productDto);
+        return new ResponseEntity<>(productMapper.toDto(product), HttpStatus.CREATED);
     }
 
     @GetMapping()
-    public ResponseEntity<List<ProductGetDto>> getAllProducts() {
-        List<Product> productList = productService.getAllProductCategories();
-        return new ResponseEntity<>(productList.stream().map(product -> productMapper.toGetDto(product)).toList(), HttpStatus.OK);
+    public ResponseEntity<List<ProductDto>> getAllProducts() {
+        List<ProductDto> productList = productService.getAllProductCategories();
+        return new ResponseEntity<>(productList, HttpStatus.OK);
     }
 
 
@@ -49,34 +49,31 @@ public class ProductController {
             productService.deleteById(productId);
             return ResponseEntity.ok(PRODUCT_CATEGORY_WITH_ID + productId + HAS_BEEN_DELETED);
 
-        } catch (IllegalArgumentException e) {
-
-            return ResponseEntity.notFound().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.ok(e.getMessage());
         }
     }
 
     @GetMapping("/{productId}")
-    public ResponseEntity<ProductGetDto> getProductById(@PathVariable UUID productId) {
-        Product product = productService.findById(productId).orElse(null);
+    public ResponseEntity<ProductDto> getProductById(@PathVariable UUID productId) {
+        Optional<Product> product = productService.findById(productId);
 
-        if (product == null) {
-            return ResponseEntity.notFound().build();
-        }
+        return product.map(value -> ResponseEntity.ok(productMapper.toDto(value))).orElseGet(() -> ResponseEntity.notFound().build());
 
-        return ResponseEntity.ok(productMapper.toGetDto(product));
     }
 
     @PutMapping("/{productId}")
-    public ResponseEntity<ProductGetDto> updateProduct(
+    public ResponseEntity<ProductDto> updateProduct(
             @PathVariable UUID productId,
-            @RequestBody ProductGetDto updatedProduct
+            @RequestBody ProductDto updatedProduct
     ) {
         try {
 
             Product product = productService.updateProduct(productId, updatedProduct);
-            return ResponseEntity.ok(productMapper.toGetDto(product));
+            return ResponseEntity.ok(productMapper.toDto(product));
 
-        } catch (IllegalArgumentException e) {
+        } catch (EntityNotFoundException e) {
+            Logger.getAnonymousLogger().log(Level.WARNING, e.getMessage());
             return ResponseEntity.notFound().build();
         }
 

@@ -1,22 +1,24 @@
 package ro.msg.learning.shop.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ro.msg.learning.shop.domain.Location;
-import ro.msg.learning.shop.dto.LocationGetDto;
+import ro.msg.learning.shop.dto.LocationDto;
 import ro.msg.learning.shop.mapper.LocationMapper;
 import ro.msg.learning.shop.service.LocationService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RequestMapping("/location")
 @RestController
-@Validated
 public class LocationController {
 
     public static final String PRODUCT_CATEGORY_WITH_ID = "Location with ID ";
@@ -28,22 +30,16 @@ public class LocationController {
     private LocationMapper locationMapper;
 
     @PostMapping()
-    public ResponseEntity<LocationGetDto> createLocation(@RequestBody @NonNull LocationGetDto body) {
-        try {
+    public ResponseEntity<LocationDto> createLocation(@RequestBody @NonNull LocationDto locationDto) {
 
-            Location location = locationService.createLocation(locationMapper.toEntity(body));
-            return new ResponseEntity<>(locationMapper.toGetDto(location), HttpStatus.CREATED);
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-
+        Location location = locationService.createLocation(locationMapper.toEntity(locationDto));
+        return new ResponseEntity<>(locationMapper.toDto(location), HttpStatus.CREATED);
     }
 
     @GetMapping()
-    public ResponseEntity<List<LocationGetDto>> getAllLocations() {
-        List<Location> productCategories = locationService.getAllLocations();
-        return new ResponseEntity<>(productCategories.stream().map(location -> locationMapper.toGetDto(location)).toList(), HttpStatus.OK);
+    public ResponseEntity<List<LocationDto>> getAllLocations() {
+        List<LocationDto> locations = locationService.getAllLocations();
+        return new ResponseEntity<>(locations, HttpStatus.OK);
     }
 
     @DeleteMapping("/{locationId}")
@@ -52,34 +48,32 @@ public class LocationController {
             locationService.deleteById(locationId);
             return ResponseEntity.ok(PRODUCT_CATEGORY_WITH_ID + locationId + HAS_BEEN_DELETED);
 
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.ok(e.getMessage());
         }
 
     }
 
     @GetMapping("/{locationId}")
-    public ResponseEntity<LocationGetDto> getLocationById(@PathVariable UUID locationId) {
-        Location location = locationService.findById(locationId).orElse(null);
+    public ResponseEntity<LocationDto> getLocationById(@PathVariable UUID locationId) {
+        Optional<Location> location = locationService.findById(locationId);
 
-        if (location == null) {
-            return ResponseEntity.notFound().build();
-        }
+        return location.map(value -> ResponseEntity.ok(locationMapper.toDto(value))).orElseGet(() -> ResponseEntity.notFound().build());
 
-        return ResponseEntity.ok(locationMapper.toGetDto(location));
     }
 
     @PutMapping("/{locationId}")
-    public ResponseEntity<LocationGetDto> updateLocation(
+    public ResponseEntity<LocationDto> updateLocation(
             @PathVariable UUID locationId,
-            @RequestBody LocationGetDto updatedLocation
+            @RequestBody LocationDto updatedLocation
     ) {
         try {
 
             Location location = locationService.updateLocation(locationId, locationMapper.toEntity(updatedLocation));
-            return ResponseEntity.ok(locationMapper.toGetDto(location));
+            return ResponseEntity.ok(locationMapper.toDto(location));
 
-        } catch (IllegalArgumentException e) {
+        } catch (EntityNotFoundException e) {
+            Logger.getAnonymousLogger().log(Level.WARNING, e.getMessage());
             return ResponseEntity.notFound().build();
         }
 

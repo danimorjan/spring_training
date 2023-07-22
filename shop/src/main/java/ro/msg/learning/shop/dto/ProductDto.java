@@ -11,7 +11,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ProductGetDto {
+public class ProductDto {
     private UUID id;
     private UUID categoryId;
     private String productName;

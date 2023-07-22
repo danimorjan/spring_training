@@ -1,8 +1,11 @@
 package ro.msg.learning.shop.service;
 
+import jakarta.persistence.EntityExistsException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ro.msg.learning.shop.domain.ProductCategory;
+import ro.msg.learning.shop.dto.ProductCategoryDto;
 import ro.msg.learning.shop.mapper.ProductCategoryMapper;
 import ro.msg.learning.shop.repository.ProductCategoryRepository;
 
@@ -22,15 +25,15 @@ public class ProductCategoryService {
 
 
     public ProductCategory createProductCategory(ProductCategory productCategory) {
-        ProductCategory productCategoryFound = productCategoryRepository.findByName(productCategory.getName()).orElse(null);
-        if (productCategoryFound != null) {
-            throw new IllegalArgumentException(THE_VALUE_IS_ALREADY_IN_THE_LIST);
+        Optional<ProductCategory> productCategoryFound = productCategoryRepository.findByName(productCategory.getName());
+        if (productCategoryFound.isPresent()) {
+            throw new EntityExistsException(THE_VALUE_IS_ALREADY_IN_THE_LIST);
         }
         return productCategoryRepository.save(productCategory);
     }
 
-    public List<ProductCategory> getAllProductCategories() {
-        return productCategoryRepository.findAll();
+    public List<ProductCategoryDto> getAllProductCategories() {
+        return productCategoryRepository.findAll().stream().map(productCategory -> productCategoryMapper.toDto(productCategory)).toList();
     }
 
     public Boolean existById(UUID categoryId) {
@@ -39,7 +42,7 @@ public class ProductCategoryService {
 
     public void deleteById(UUID categoryId) {
         if (Boolean.FALSE.equals(productCategoryRepository.existsById(categoryId))) {
-            throw new IllegalArgumentException(ID_INVALID);
+            throw new EntityNotFoundException(ID_INVALID);
         }
         productCategoryRepository.deleteById(categoryId);
     }
@@ -49,18 +52,18 @@ public class ProductCategoryService {
     }
 
     public ProductCategory updateProductCategory(UUID categoryID, ProductCategory updatedProductCategory) {
-        ProductCategory existingProductCategory = productCategoryRepository.findById(categoryID).orElse(null);
+        Optional<ProductCategory> existingProductCategory = productCategoryRepository.findById(categoryID);
 
-        if (existingProductCategory == null) {
+        if (existingProductCategory.isEmpty()) {
 
-            throw new IllegalArgumentException(ID_INVALID);
+            throw new EntityNotFoundException(ID_INVALID);
         }
 
-        existingProductCategory.setName(updatedProductCategory.getName());
+        existingProductCategory.get().setName(updatedProductCategory.getName());
 
-        existingProductCategory.setDescription(updatedProductCategory.getDescription());
+        existingProductCategory.get().setDescription(updatedProductCategory.getDescription());
 
-        return productCategoryRepository.save(existingProductCategory);
+        return productCategoryRepository.save(existingProductCategory.get());
     }
 
     public Optional<ProductCategory> findByName(String name) {

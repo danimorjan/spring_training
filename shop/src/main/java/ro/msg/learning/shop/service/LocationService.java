@@ -1,8 +1,10 @@
 package ro.msg.learning.shop.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ro.msg.learning.shop.domain.Location;
+import ro.msg.learning.shop.dto.LocationDto;
 import ro.msg.learning.shop.mapper.LocationMapper;
 import ro.msg.learning.shop.repository.LocationRepository;
 
@@ -25,8 +27,8 @@ public class LocationService {
         return locationRepository.save(location);
     }
 
-    public List<Location> getAllLocations() {
-        return locationRepository.findAll();
+    public List<LocationDto> getAllLocations() {
+        return locationRepository.findAll().stream().map(location -> locationMapper.toDto(location)).toList();
     }
 
     public Boolean existById(UUID locationId) {
@@ -35,7 +37,7 @@ public class LocationService {
 
     public void deleteById(UUID locationId) {
         if (Boolean.FALSE.equals(locationRepository.existsById(locationId))) {
-            throw new IllegalArgumentException(ID_INVALID);
+            throw new EntityNotFoundException(ID_INVALID);
         }
         locationRepository.deleteById(locationId);
     }
@@ -49,7 +51,7 @@ public class LocationService {
 
         if (existingLocation == null) {
 
-            throw new IllegalArgumentException(ID_INVALID);
+            throw new EntityNotFoundException(ID_INVALID);
         }
 
         existingLocation.setName(updatedLocation.getName());

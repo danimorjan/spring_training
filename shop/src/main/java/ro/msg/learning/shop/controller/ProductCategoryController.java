@@ -1,22 +1,25 @@
 package ro.msg.learning.shop.controller;
 
+import jakarta.persistence.EntityExistsException;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ro.msg.learning.shop.domain.ProductCategory;
-import ro.msg.learning.shop.dto.ProductCategoryGetDto;
+import ro.msg.learning.shop.dto.ProductCategoryDto;
 import ro.msg.learning.shop.mapper.ProductCategoryMapper;
 import ro.msg.learning.shop.service.ProductCategoryService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RequestMapping("/productCategory")
 @RestController
-@Validated
 public class ProductCategoryController {
 
     public static final String PRODUCT_CATEGORY_WITH_ID = "Product category with ID ";
@@ -28,22 +31,23 @@ public class ProductCategoryController {
     private ProductCategoryMapper productCategoryMapper;
 
     @PostMapping()
-    public ResponseEntity<ProductCategoryGetDto> createProductCategory(@RequestBody @NonNull ProductCategoryGetDto body) {
+    public ResponseEntity<ProductCategoryDto> createProductCategory(@RequestBody @NonNull ProductCategoryDto productCategoryDto) {
         try {
 
-            ProductCategory productCategory = productCategoryService.createProductCategory(productCategoryMapper.toEntity(body));
-            return new ResponseEntity<>(productCategoryMapper.toGetDto(productCategory), HttpStatus.CREATED);
+            ProductCategory productCategory = productCategoryService.createProductCategory(productCategoryMapper.toEntity(productCategoryDto));
+            return new ResponseEntity<>(productCategoryMapper.toDto(productCategory), HttpStatus.CREATED);
 
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        } catch (EntityExistsException e) {
+            Logger.getAnonymousLogger().log(Level.WARNING, e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
 
     }
 
     @GetMapping()
-    public ResponseEntity<List<ProductCategoryGetDto>> getAllProductCategories() {
-        List<ProductCategory> productCategories = productCategoryService.getAllProductCategories();
-        return new ResponseEntity<>(productCategories.stream().map(productCategory -> productCategoryMapper.toGetDto(productCategory)).toList(), HttpStatus.OK);
+    public ResponseEntity<List<ProductCategoryDto>> getAllProductCategories() {
+        List<ProductCategoryDto> productCategories = productCategoryService.getAllProductCategories();
+        return new ResponseEntity<>(productCategories, HttpStatus.OK);
     }
 
     @DeleteMapping("/{categoryId}")
@@ -52,34 +56,32 @@ public class ProductCategoryController {
             productCategoryService.deleteById(categoryId);
             return ResponseEntity.ok(PRODUCT_CATEGORY_WITH_ID + categoryId + HAS_BEEN_DELETED);
 
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.ok(e.getMessage());
         }
 
     }
 
     @GetMapping("/{categoryId}")
-    public ResponseEntity<ProductCategoryGetDto> getProductCategoryById(@PathVariable UUID categoryId) {
-        ProductCategory productCategory = productCategoryService.findById(categoryId).orElse(null);
+    public ResponseEntity<ProductCategoryDto> getProductCategoryById(@PathVariable UUID categoryId) {
+        Optional<ProductCategory> productCategory = productCategoryService.findById(categoryId);
 
-        if (productCategory == null) {
-            return ResponseEntity.notFound().build();
-        }
+        return productCategory.map(category -> ResponseEntity.ok(productCategoryMapper.toDto(category))).orElseGet(() -> ResponseEntity.notFound().build());
 
-        return ResponseEntity.ok(productCategoryMapper.toGetDto(productCategory));
     }
 
     @PutMapping("/{categoryId}")
-    public ResponseEntity<ProductCategoryGetDto> updateProductCategory(
+    public ResponseEntity<ProductCategoryDto> updateProductCategory(
             @PathVariable UUID categoryId,
-            @RequestBody ProductCategoryGetDto updatedProductCategory
+            @RequestBody ProductCategoryDto updatedProductCategory
     ) {
         try {
 
             ProductCategory productCategory = productCategoryService.updateProductCategory(categoryId, productCategoryMapper.toEntity(updatedProductCategory));
-            return ResponseEntity.ok(productCategoryMapper.toGetDto(productCategory));
+            return ResponseEntity.ok(productCategoryMapper.toDto(productCategory));
 
-        } catch (IllegalArgumentException e) {
+        } catch (EntityNotFoundException e) {
+            Logger.getAnonymousLogger().log(Level.WARNING, e.getMessage());
             return ResponseEntity.notFound().build();
         }
 

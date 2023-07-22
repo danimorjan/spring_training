@@ -4,14 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ro.msg.learning.shop.domain.Location;
-import ro.msg.learning.shop.domain.Product;
+
+import java.util.UUID;
+
 @Data
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
-public class StockGetDto {
-    private Product product;
-    private Location location;
+public class StockIDsDto {
+    private UUID productId;
+    private UUID locationId;
     private Integer quantity;
 }
