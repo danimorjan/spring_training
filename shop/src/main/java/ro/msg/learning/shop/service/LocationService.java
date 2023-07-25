@@ -22,7 +22,6 @@ public class LocationService {
     @Autowired
     private LocationMapper locationMapper;
 
-
     public Location createLocation(Location location) {
         return locationRepository.save(location);
     }

@@ -41,4 +41,13 @@ public interface StockRepository extends JpaRepository<Stock, StockId>, JpaSpeci
             "    HAVING COUNT(DISTINCT product) =:productsCount")
     List<Location> findLocationIdsByProducts(@Param("products") List<Product> products, @Param("productsCount") Integer productsCount);
 
+    @Query("SELECT s.location " +
+            "FROM Stock s " +
+            "WHERE s.product = :product " +
+            "AND s.quantity = (" +
+            "    SELECT MAX(s2.quantity) " +
+            "    FROM Stock s2 " +
+            "    WHERE s2.product = :product)")
+    Location findLocationWithHighestStock(@Param("product") Product product);
+
 }

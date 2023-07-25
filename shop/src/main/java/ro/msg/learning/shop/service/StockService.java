@@ -8,7 +8,6 @@ import ro.msg.learning.shop.domain.Product;
 import ro.msg.learning.shop.domain.Stock;
 import ro.msg.learning.shop.domain.StockId;
 import ro.msg.learning.shop.dto.ProductIdAndQuantity;
-import ro.msg.learning.shop.dto.StockDto;
 import ro.msg.learning.shop.dto.StockIDsDto;
 import ro.msg.learning.shop.mapper.StockMapper;
 import ro.msg.learning.shop.repository.StockRepository;
@@ -47,7 +46,7 @@ public class StockService {
         return stockRepository.save(stockMapper.toStockEntity(productFound.get(), locationFound.get(), stock.getQuantity()));
     }
 
-    public List<StockDto> getAllStockCategories() {
+    public List<StockIDsDto> getAllStockCategories() {
         return stockRepository.findAll().stream().map(stock -> stockMapper.toDto(stock)).toList();
     }
 
@@ -62,12 +61,16 @@ public class StockService {
         stockRepository.deleteById(stockId);
     }
 
-    public Optional<Stock> findById(StockId stockId) {
-        return stockRepository.findById(stockId);
+    public Optional<Stock> findById(UUID locationId, UUID productId) {
+        return stockRepository.findById(StockId.builder().location(locationId).product(productId).build());
     }
 
     public List<UUID> findLocationIdsByProductIdsAndStock(List<ProductIdAndQuantity> productIdAndQuantityList, List<Product> products) {
         return stockRepository.findLocationIdsByProductIdsAndStock(productIdAndQuantityList, products);
+    }
+
+    public Location findLocationWithHighestStock(Product product) {
+        return stockRepository.findLocationWithHighestStock(product);
     }
 
     public List<Location> findLocationIdsByProducts(List<Product> products, Integer productsCount) {
@@ -85,4 +88,6 @@ public class StockService {
 
         return stockRepository.save(existingStock.get());
     }
+
+
 }

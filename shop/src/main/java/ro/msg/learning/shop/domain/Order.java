@@ -1,9 +1,7 @@
 package ro.msg.learning.shop.domain;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -12,8 +10,11 @@ import java.time.LocalDateTime;
 
 @EqualsAndHashCode(callSuper = true)
 @Table(name = "orderr", schema = "shop")
-@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
+@Getter
+@Setter
 @Builder
 public class Order extends BaseEntity {
 

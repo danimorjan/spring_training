@@ -1,6 +1,5 @@
 package ro.msg.learning.shop.controller;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,8 +13,6 @@ import ro.msg.learning.shop.service.LocationService;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @RequestMapping("/location")
 @RestController
@@ -44,20 +41,13 @@ public class LocationController {
 
     @DeleteMapping("/{locationId}")
     public ResponseEntity<String> deleteLocation(@PathVariable UUID locationId) {
-        try {
-            locationService.deleteById(locationId);
-            return ResponseEntity.ok(PRODUCT_CATEGORY_WITH_ID + locationId + HAS_BEEN_DELETED);
-
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.ok(e.getMessage());
-        }
-
+        locationService.deleteById(locationId);
+        return ResponseEntity.ok(PRODUCT_CATEGORY_WITH_ID + locationId + HAS_BEEN_DELETED);
     }
 
     @GetMapping("/{locationId}")
     public ResponseEntity<LocationDto> getLocationById(@PathVariable UUID locationId) {
         Optional<Location> location = locationService.findById(locationId);
-
         return location.map(value -> ResponseEntity.ok(locationMapper.toDto(value))).orElseGet(() -> ResponseEntity.notFound().build());
 
     }
@@ -67,15 +57,7 @@ public class LocationController {
             @PathVariable UUID locationId,
             @RequestBody LocationDto updatedLocation
     ) {
-        try {
-
-            Location location = locationService.updateLocation(locationId, locationMapper.toEntity(updatedLocation));
-            return ResponseEntity.ok(locationMapper.toDto(location));
-
-        } catch (EntityNotFoundException e) {
-            Logger.getAnonymousLogger().log(Level.WARNING, e.getMessage());
-            return ResponseEntity.notFound().build();
-        }
-
+        Location location = locationService.updateLocation(locationId, locationMapper.toEntity(updatedLocation));
+        return ResponseEntity.ok(locationMapper.toDto(location));
     }
 }

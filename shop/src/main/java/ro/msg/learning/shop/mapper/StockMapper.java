@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 import ro.msg.learning.shop.domain.Location;
 import ro.msg.learning.shop.domain.Product;
 import ro.msg.learning.shop.domain.Stock;
-import ro.msg.learning.shop.dto.StockDto;
+import ro.msg.learning.shop.dto.StockIDsDto;
 
 @Component
 public class StockMapper {
@@ -17,10 +17,10 @@ public class StockMapper {
                 .build();
     }
 
-    public StockDto toDto(Stock stock) {
-        return StockDto.builder()
-                .product(stock.getProduct())
-                .location(stock.getLocation())
+    public StockIDsDto toDto(Stock stock) {
+        return StockIDsDto.builder()
+                .productId(stock.getProduct().getId())
+                .locationId(stock.getLocation().getId())
                 .quantity(stock.getQuantity())
                 .build();
     }

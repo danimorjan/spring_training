@@ -32,14 +32,14 @@ public class ProductService {
 
     public Product createProduct(ProductDto product) {
 
-        ProductCategory productCategoryFound = productCategoryService.findByName(product.getCategoryName()).orElse(null);
+        Optional<ProductCategory> productCategoryFound = productCategoryService.findByName(product.getCategoryName());
 
-        if (productCategoryFound == null) {
+        if (productCategoryFound.isEmpty()) {
             ProductCategory productCategoryInserted = productCategoryService.createProductCategory(productMapper.toProductCategoryEntity(product));
             return productRepository.save(productMapper.toProductEntity(product, productCategoryInserted));
         }
 
-        return productRepository.save(productMapper.toProductEntity(product, productCategoryFound));
+        return productRepository.save(productMapper.toProductEntity(product, productCategoryFound.get()));
     }
 
     public List<ProductDto> getAllProductCategories() {
@@ -75,12 +75,13 @@ public class ProductService {
         existingProduct.get().setWeight(updatedProduct.getWeight());
         existingProduct.get().setImageUrl(updatedProduct.getImageUrl());
 
-        ProductCategory existingCategory = productCategoryService.findByName(updatedProduct.getCategoryName()).orElse(null);
-        if (existingCategory == null) {
-            existingCategory = productCategoryService.createProductCategory(productMapper.toProductCategoryEntity(updatedProduct));
+        Optional<ProductCategory> existingCategory = productCategoryService.findByName(updatedProduct.getCategoryName());
+        if (existingCategory.isEmpty()) {
+            productCategoryService.createProductCategory(productMapper.toProductCategoryEntity(updatedProduct));
+        } else {
+            productCategoryService.updateProductCategory(existingCategory.get().getId(), productMapper.toProductCategoryEntity(updatedProduct));
         }
-        existingCategory.setDescription(updatedProduct.getCategoryDescription());
-        existingProduct.get().setProductCategory(existingCategory);
+        existingProduct.get().setProductCategory(productMapper.toProductCategoryEntity(updatedProduct));
 
         return productRepository.save(existingProduct.get());
     }

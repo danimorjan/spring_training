@@ -1,6 +1,5 @@
 package ro.msg.learning.shop.controller;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,8 +13,6 @@ import ro.msg.learning.shop.service.ProductService;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @RequestMapping("/product")
 @RestController
@@ -44,14 +41,9 @@ public class ProductController {
 
     @DeleteMapping("/{productId}")
     public ResponseEntity<String> deleteProduct(@PathVariable UUID productId) {
+        productService.deleteById(productId);
+        return ResponseEntity.ok(PRODUCT_CATEGORY_WITH_ID + productId + HAS_BEEN_DELETED);
 
-        try {
-            productService.deleteById(productId);
-            return ResponseEntity.ok(PRODUCT_CATEGORY_WITH_ID + productId + HAS_BEEN_DELETED);
-
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.ok(e.getMessage());
-        }
     }
 
     @GetMapping("/{productId}")
@@ -67,15 +59,8 @@ public class ProductController {
             @PathVariable UUID productId,
             @RequestBody ProductDto updatedProduct
     ) {
-        try {
-
-            Product product = productService.updateProduct(productId, updatedProduct);
-            return ResponseEntity.ok(productMapper.toDto(product));
-
-        } catch (EntityNotFoundException e) {
-            Logger.getAnonymousLogger().log(Level.WARNING, e.getMessage());
-            return ResponseEntity.notFound().build();
-        }
+        Product product = productService.updateProduct(productId, updatedProduct);
+        return ResponseEntity.ok(productMapper.toDto(product));
 
     }
 }
